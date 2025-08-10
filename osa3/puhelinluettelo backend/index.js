@@ -5,7 +5,7 @@ const app = express()
 
 app.use(morgan('tiny'))
 app.use(cors())
-app.use(ecpress.static('dist'))
+app.use(express.static('dist'))
 app.use(express.json())
 
 let persons = [
