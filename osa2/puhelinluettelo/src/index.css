@@ -1,0 +1,20 @@
+.added {
+    background-color: lightgray;
+    color: green;
+    font-size: larger;
+    border: 2px solid green;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 5px;
+}
+
+.error {
+    background-color: lightgray;
+    color: red;
+    font-size: larger;
+    border: 2px solid red;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 5px;
+
+}
