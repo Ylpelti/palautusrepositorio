@@ -85,6 +85,13 @@ const App = () => {
         setNewNumber('')
 
       })
+      .catch(error => {
+        setMessage(error.response.data.error)
+        setMessagetype('error')
+        setTimeout(() => {
+          setMessage(null)
+        }, 5000)
+      })
     
 
   }
