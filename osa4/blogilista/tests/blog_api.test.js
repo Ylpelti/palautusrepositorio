@@ -1,11 +1,14 @@
 
-const { test, after, beforeEach, only } = require('node:test')
+const { test, after, beforeEach, only, describe } = require('node:test')
 const mongoose = require('mongoose')
 const supertest = require('supertest')
 const app = require('../app')
 const Blog = require('../models/blog')
 const assert = require('node:assert')
 const helper = require('./test_helper')
+const { request } = require('node:http')
+const bcrypt = require('bcrypt')
+const User = require('../models/user')
 
 const api = supertest(app)
 
@@ -92,12 +95,85 @@ test.only('a specific blog can be viewed', async () => {
   assert.deepStrictEqual(resultBlog.body, blogToView)
 })
 
-test.only('blogs have id, not _id', async () => {
+test('blogs have id, not _id', async () => {
   const blogs = await helper.blogsInDb()
 
   blogs.forEach(blog => {
-    assert.ok(blog.id)   // varmista, että id on olemassa
-    assert.strictEqual(blog._id, undefined) // varmista, että _id ei näy
+    assert.ok(blog.id) 
+    assert.strictEqual(blog._id, undefined) 
+})
+})
+
+test.only('deleting blog', async () => {
+    const blogsAtStart = await helper.blogsInDb()
+    const blogToDelete = blogsAtStart[0]
+
+    await api
+        .delete(`/api/blogs/${blogToDelete.id}`)
+        .expect(204)
+
+    blogsAtEnd = await helper.blogsInDb()
+    assert.strictEqual(blogsAtEnd.length, blogsAtStart.length -1)
+
+    const ids = blogsAtEnd.map(b => b.id)
+    assert(!ids.includes(blogToDelete.id))
+}) 
+
+
+
+describe('when there is initially one user at db', () => {
+  beforeEach(async () => {
+    await User.deleteMany({})
+
+    const passwordHash = await bcrypt.hash('sekret', 10)
+    const user = new User({ username: 'root', passwordHash })
+
+    await user.save()
+  })
+
+  test('creation succeeds with a fresh username', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'mluukkai',
+      name: 'Matti Luukkainen',
+      password: 'salainen',
+    }
+
+    await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(201)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    console.log('Users at end:', usersAtEnd);
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length + 1)
+
+    const usernames = usersAtEnd.map(u => u.username)
+    console.log('Usernames:', usernames);
+    assert(usernames.includes(newUser.username))
+  })
+  test('creation fails with proper statuscode and message if username already taken', async () => {
+    const usersAtStart = await helper.usersInDb()
+
+    const newUser = {
+      username: 'root',
+      name: 'Superuser',
+      password: 'salainen',
+    }
+
+    const result = await api
+      .post('/api/users')
+      .send(newUser)
+      .expect(400)
+      .expect('Content-Type', /application\/json/)
+
+    const usersAtEnd = await helper.usersInDb()
+    assert(result.body.error.includes('expected `username` to be unique'))
+
+    assert.strictEqual(usersAtEnd.length, usersAtStart.length)
   })
 })
 
